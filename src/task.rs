@@ -1,11 +1,9 @@
 use crate::config::CliError;
 use std::{convert, fmt};
 
-use jiff::{
-    Unit, Zoned, civil,
-    tz::{Offset, TimeZone},
-};
+use jiff::{Unit, Zoned};
 
+#[derive(Debug, PartialEq)]
 struct Task {
     id: u32,
     desc: String,
@@ -27,14 +25,8 @@ impl Task {
             self.id,
             self.desc,
             self.status,
-            self.created_at
-                .round(Unit::Second)
-                .unwrap()
-                .strftime("%Y-%m-%dT%H:%M:%S%:z"),
-            self.updated_at
-                .round(Unit::Second)
-                .unwrap()
-                .strftime("%Y-%m-%dT%H:%M:%S%:z")
+            self.created_at.round(Unit::Second).unwrap(),
+            self.updated_at.round(Unit::Second).unwrap()
         )
     }
 
@@ -58,6 +50,70 @@ impl Task {
             json_tasks.join(",\n")
         )
     }
+
+    fn read_json(json: String) -> Result<Vec<Self>, FileError> {
+        let mut tasks: Vec<Self> = Vec::new();
+
+        if json.is_empty() {
+            return Ok(tasks);
+        }
+        let less_json = json
+            .strip_prefix(
+                r##"{
+    "tasks": [
+"##,
+            )
+            .ok_or(FileError::MissingTasks)?;
+
+        let key_strs = [
+            r##""id": "##,
+            r##",
+            "desc": ""##,
+            r##"",
+            "status": ""##,
+            r##"",
+            "created_at": ""##,
+            r##"",
+            "updated_at": ""##,
+            r##"""##,
+        ];
+
+        for obj in less_json
+            .trim_matches(|c| c == '[' || c == ']')
+            .split("},\n        {")
+        {
+            let task = obj.trim_matches(|c| c == '{' || c == '}');
+
+            let mut values = Vec::new();
+            for key in key_strs.windows(2) {
+                let value = Self::find_json_value(task, key[0], key[1])?;
+                values.push(value.to_string());
+            }
+
+            tasks.push(Task {
+                id: values[0].parse::<u32>().unwrap(),
+                desc: values[1].clone(),
+                status: Status::try_from(values[2].as_str()).unwrap(),
+                created_at: values[3].parse().unwrap(),
+                updated_at: values[4].parse().unwrap(),
+            })
+        }
+
+        Ok(tasks)
+    }
+
+    // Returns value in between before key and after key in task json
+    fn find_json_value(task: &str, before: &str, after: &str) -> Result<String, FileError> {
+        let start: usize = task.find(before).ok_or(FileError::InvalidTask)? + before.len();
+        let end = task.rfind(after).unwrap();
+        Ok(task[start..end].to_string())
+    }
+}
+
+#[derive(Debug, PartialEq)]
+enum FileError {
+    MissingTasks,
+    InvalidTask,
 }
 
 #[derive(Debug, PartialEq)]
@@ -92,20 +148,36 @@ impl convert::TryFrom<&str> for Status {
 
 #[cfg(test)]
 mod test {
-    use jiff::tz::TimeZone;
+
+    use jiff::civil;
 
     use super::*;
 
-    #[test]
-    fn test_tasks_to_json() {
-        let dt = civil::date(2024, 2, 29).at(12, 51, 0, 0);
-        let offset = Offset::from_hours(8).unwrap();
-        let time = dt
-            .to_zoned(TimeZone::fixed(offset))
-            .expect("msg")
-            .round(Unit::Second)
-            .expect("msg");
-        let tasks = vec![
+    static JSON_EXAMPLE: &str = r##"{
+    "tasks": [
+        {
+            "id": 1,
+            "desc": "buy milk",
+            "status": "in-progress",
+            "created_at": "2024-02-29T12:51:00+08:00[Asia/Manila]",
+            "updated_at": "2024-02-29T12:51:00+08:00[Asia/Manila]"
+        },
+        {
+            "id": 2,
+            "desc": "go home",
+            "status": "todo",
+            "created_at": "2024-02-29T12:51:00+08:00[Asia/Manila]",
+            "updated_at": "2024-02-29T12:51:00+08:00[Asia/Manila]"
+        }
+    ]
+}"##;
+
+    fn tasks_example() -> Vec<Task> {
+        let time = civil::date(2024, 2, 29)
+            .at(12, 51, 0, 0)
+            .in_tz("Asia/Manila")
+            .unwrap();
+        vec![
             Task {
                 id: 1,
                 desc: "buy milk".to_string(),
@@ -120,27 +192,22 @@ mod test {
                 created_at: time.clone(),
                 updated_at: time.clone(),
             },
-        ];
-        let actual = Task::tasks_to_json(tasks);
-        let expected = r##"{
-    "tasks": [
-        {
-            "id": 1,
-            "desc": "buy milk",
-            "status": "in-progress",
-            "created_at": "2024-02-29T12:51:00+08:00",
-            "updated_at": "2024-02-29T12:51:00+08:00"
-        },
-        {
-            "id": 2,
-            "desc": "go home",
-            "status": "todo",
-            "created_at": "2024-02-29T12:51:00+08:00",
-            "updated_at": "2024-02-29T12:51:00+08:00"
-        }
-    ]
-}"##;
+        ]
+    }
 
+    #[test]
+    fn test_tasks_to_json() {
+        let tasks = tasks_example();
+        let actual = Task::tasks_to_json(tasks);
+        let expected = JSON_EXAMPLE;
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_read_json() {
+        let json = JSON_EXAMPLE.to_string();
+        let actual = Task::read_json(json);
+        let expected = tasks_example();
+        assert_eq!(actual, Ok(expected));
     }
 }
