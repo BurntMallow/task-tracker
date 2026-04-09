@@ -1,5 +1,5 @@
 use crate::config::CliError;
-use std::{convert, error::Error, fmt};
+use std::{convert, error::Error, fmt, fs, io::ErrorKind};
 
 use jiff::{Unit, Zoned};
 
@@ -49,6 +49,16 @@ impl Task {
 }}"##,
             json_tasks.join(",\n")
         )
+    }
+
+    pub fn load() -> Result<Vec<Self>, Box<dyn Error>> {
+        let json: String = match fs::read_to_string("tasks.json") {
+            Ok(content) => content,
+            Err(ref e) if e.kind() == ErrorKind::NotFound => String::new(),
+            Err(e) => return Err(Box::new(e)),
+        };
+        let tasks = Self::read_json(json)?;
+        Ok(tasks)
     }
 
     fn read_json(json: String) -> Result<Vec<Self>, FileError> {
