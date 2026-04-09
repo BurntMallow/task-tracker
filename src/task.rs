@@ -1,5 +1,5 @@
 use crate::config::CliError;
-use std::{convert, error, fmt};
+use std::{convert, error::Error, fmt};
 
 use jiff::{Unit, Zoned};
 
@@ -116,7 +116,7 @@ enum FileError {
     MissingTasks,
 }
 
-impl error::Error for FileError {}
+impl Error for FileError {}
 
 impl fmt::Display for FileError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
