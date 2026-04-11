@@ -61,6 +61,15 @@ impl Task {
         Ok(tasks)
     }
 
+    pub fn save(tasks: Vec<Self>) -> Result<(), Box<dyn Error>> {
+        let path = "tasks.json";
+        let temp_path = "tasks.json.tmp";
+        let contents = Self::tasks_to_json(tasks);
+        fs::write(temp_path, contents.as_bytes())?;
+        fs::rename(temp_path, path)?;
+        Ok(())
+    }
+
     fn read_json(json: String) -> Result<Vec<Self>, FileError> {
         let mut tasks: Vec<Self> = Vec::new();
 
