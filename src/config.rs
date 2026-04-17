@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::{convert, fmt};
 
 use crate::task::Status;
@@ -99,28 +100,18 @@ pub enum Command {
 }
 
 impl Command {
-    fn kind(&self) -> CommandKind {
+    pub fn execute(self) -> Result<(), Box<dyn Error>> {
         match self {
-            Command::Help => CommandKind::Help,
-            Command::Add { .. } => CommandKind::Add,
-            Command::Update { .. } => CommandKind::Update,
-            Command::Delete { .. } => CommandKind::Delete,
-            Command::MarkInProgress { .. } => CommandKind::MarkInProgress,
-            Command::MarkDone { .. } => CommandKind::MarkDone,
-            Command::List { .. } => CommandKind::List,
-        }
-    }
-    pub fn execute(&self) {
-        match self.kind() {
-            CommandKind::Help => {
+            Command::Help => {
                 println!("Manages your tasks\n{}", show_all_usage());
+                Ok(())
             }
-            CommandKind::Add => todo!(),
-            CommandKind::Update => todo!(),
-            CommandKind::Delete => todo!(),
-            CommandKind::MarkInProgress => todo!(),
-            CommandKind::MarkDone => todo!(),
-            CommandKind::List => todo!(),
+            Command::Add(desc) => todo!(),
+            Command::Update { id, desc } => todo!(),
+            Command::Delete(id) => todo!(),
+            Command::MarkInProgress(id) => todo!(),
+            Command::MarkDone(id) => todo!(),
+            Command::List(status) => todo!(),
         }
     }
 }
