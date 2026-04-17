@@ -114,7 +114,12 @@ impl Command {
                 Task::save(tasks)?;
                 Ok(())
             }
-            Command::Update { id, desc } => todo!(),
+            Command::Update { id, desc } => {
+                let mut tasks = Task::load()?;
+                Self::update_task(&mut tasks, id, desc, Zoned::now())?;
+                Task::save(tasks)?;
+                Ok(())
+            }
             Command::Delete(id) => todo!(),
             Command::MarkInProgress(id) => todo!(),
             Command::MarkDone(id) => todo!(),
@@ -134,6 +139,22 @@ impl Command {
             created_at: now.clone(),
             updated_at: now,
         });
+    }
+
+    fn update_task(
+        tasks: &mut [Task],
+        id: u32,
+        new_desc: String,
+        time: Zoned,
+    ) -> Result<(), CommandError> {
+        let task = tasks
+            .iter_mut()
+            .find(|t| t.id == id)
+            .ok_or(CommandError::NotFound(id))?;
+
+        task.desc = new_desc;
+        task.updated_at = time;
+        Ok(())
     }
 }
 
@@ -404,6 +425,38 @@ mod tests {
                 updated_at: new_time,
             },
         ];
+        assert_eq!(tasks, expected);
+    }
+
+    #[test]
+    fn test_update_task() {
+        let mut tasks = tasks_example();
+        let time = tasks.first().unwrap().created_at.clone();
+        let new_desc = "example".to_string();
+        let new_time = get_new_time();
+
+        let err = Command::update_task(&mut tasks, 3, new_desc.clone(), new_time.clone());
+        assert_eq!(err, Err(CommandError::NotFound(3)));
+        assert_eq!(tasks, tasks_example());
+
+        let ok = Command::update_task(&mut tasks, 2, new_desc.clone(), new_time.clone());
+        let expected = vec![
+            Task {
+                id: 1,
+                desc: "buy milk".to_string(),
+                status: Status::InProgress,
+                created_at: time.clone(),
+                updated_at: time.clone(),
+            },
+            Task {
+                id: 2,
+                desc: new_desc,
+                status: Status::ToDo,
+                created_at: time,
+                updated_at: new_time,
+            },
+        ];
+        assert!(ok.is_ok());
         assert_eq!(tasks, expected);
     }
 }
