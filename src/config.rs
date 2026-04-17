@@ -137,6 +137,21 @@ impl Command {
     }
 }
 
+#[derive(Debug, PartialEq)]
+enum CommandError {
+    NotFound(u32),
+}
+
+impl Error for CommandError {}
+
+impl fmt::Display for CommandError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CommandError::NotFound(id) => write!(f, "Task with ID {id} not found"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum CommandKind {
     Help,
