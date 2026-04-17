@@ -1,7 +1,9 @@
 use std::error::Error;
 use std::{convert, fmt};
 
-use crate::task::Status;
+use jiff::Zoned;
+
+use crate::task::{Status, Task};
 
 #[derive(Debug, PartialEq)]
 pub struct Config {
@@ -106,13 +108,32 @@ impl Command {
                 println!("Manages your tasks\n{}", show_all_usage());
                 Ok(())
             }
-            Command::Add(desc) => todo!(),
+            Command::Add(desc) => {
+                let mut tasks = Task::load()?;
+                Self::add_task(&mut tasks, desc, Zoned::now());
+                Task::save(tasks)?;
+                Ok(())
+            }
             Command::Update { id, desc } => todo!(),
             Command::Delete(id) => todo!(),
             Command::MarkInProgress(id) => todo!(),
             Command::MarkDone(id) => todo!(),
             Command::List(status) => todo!(),
         }
+    }
+
+    fn add_task(tasks: &mut Vec<Task>, desc: String, now: Zoned) {
+        let id = match tasks.last() {
+            Some(task) => task.id + 1,
+            None => 1,
+        };
+        tasks.push(Task {
+            id,
+            desc: desc.to_string(),
+            status: Status::ToDo,
+            created_at: now.clone(),
+            updated_at: now,
+        });
     }
 }
 
@@ -204,7 +225,10 @@ fn show_all_usage() -> String {
 
 #[cfg(test)]
 mod tests {
+    use jiff::civil;
+
     use super::*;
+    use crate::task::tasks_example;
 
     #[test]
     fn test_build() {
@@ -326,5 +350,44 @@ mod tests {
             let actual = Config::build(input);
             assert_eq!(actual, expected);
         }
+    }
+
+    #[test]
+    fn test_add_task() {
+        let mut tasks = tasks_example();
+        let desc = "example".to_string();
+        let time = civil::date(2024, 2, 29)
+            .at(12, 51, 0, 0)
+            .in_tz("Asia/Manila")
+            .unwrap();
+        let new_time = civil::date(2025, 12, 25)
+            .at(11, 11, 11, 0)
+            .in_tz("Asia/Manila")
+            .unwrap();
+        Command::add_task(&mut tasks, desc, new_time.clone());
+        let expected = vec![
+            Task {
+                id: 1,
+                desc: "buy milk".to_string(),
+                status: Status::InProgress,
+                created_at: time.clone(),
+                updated_at: time.clone(),
+            },
+            Task {
+                id: 2,
+                desc: "go home".to_string(),
+                status: Status::ToDo,
+                created_at: time.clone(),
+                updated_at: time,
+            },
+            Task {
+                id: 3,
+                desc: "example".to_string(),
+                status: Status::ToDo,
+                created_at: new_time.clone(),
+                updated_at: new_time,
+            },
+        ];
+        assert_eq!(tasks, expected);
     }
 }
