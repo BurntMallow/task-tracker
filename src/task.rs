@@ -4,12 +4,12 @@ use std::{convert, error::Error, fmt, fs, io::ErrorKind};
 use jiff::{Unit, Zoned};
 
 #[derive(Debug, PartialEq)]
-struct Task {
-    id: u32,
-    desc: String,
-    status: Status,
-    created_at: Zoned,
-    updated_at: Zoned,
+pub struct Task {
+    pub id: u32,
+    pub desc: String,
+    pub status: Status,
+    pub created_at: Zoned,
+    pub updated_at: Zoned,
 }
 
 impl Task {
@@ -177,9 +177,33 @@ impl convert::TryFrom<&str> for Status {
 }
 
 #[cfg(test)]
-mod test {
-
+pub(crate) fn tasks_example() -> Vec<Task> {
     use jiff::civil;
+
+    let time = civil::date(2024, 2, 29)
+        .at(12, 51, 0, 0)
+        .in_tz("Asia/Manila")
+        .unwrap();
+    vec![
+        Task {
+            id: 1,
+            desc: "buy milk".to_string(),
+            status: Status::InProgress,
+            created_at: time.clone(),
+            updated_at: time.clone(),
+        },
+        Task {
+            id: 2,
+            desc: "go home".to_string(),
+            status: Status::ToDo,
+            created_at: time.clone(),
+            updated_at: time,
+        },
+    ]
+}
+
+#[cfg(test)]
+mod test {
 
     use super::*;
 
@@ -201,29 +225,6 @@ mod test {
         }
     ]
 }"##;
-
-    fn tasks_example() -> Vec<Task> {
-        let time = civil::date(2024, 2, 29)
-            .at(12, 51, 0, 0)
-            .in_tz("Asia/Manila")
-            .unwrap();
-        vec![
-            Task {
-                id: 1,
-                desc: "buy milk".to_string(),
-                status: Status::InProgress,
-                created_at: time.clone(),
-                updated_at: time.clone(),
-            },
-            Task {
-                id: 2,
-                desc: "go home".to_string(),
-                status: Status::ToDo,
-                created_at: time.clone(),
-                updated_at: time.clone(),
-            },
-        ]
-    }
 
     #[test]
     fn test_tasks_to_json() {
