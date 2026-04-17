@@ -230,6 +230,13 @@ mod tests {
     use super::*;
     use crate::task::tasks_example;
 
+    fn get_new_time() -> Zoned {
+        civil::date(2025, 12, 25)
+            .at(11, 11, 11, 0)
+            .in_tz("Asia/Manila")
+            .unwrap()
+    }
+
     #[test]
     fn test_build() {
         let cases = vec![
@@ -356,15 +363,9 @@ mod tests {
     fn test_add_task() {
         let mut tasks = tasks_example();
         let desc = "example".to_string();
-        let time = civil::date(2024, 2, 29)
-            .at(12, 51, 0, 0)
-            .in_tz("Asia/Manila")
-            .unwrap();
-        let new_time = civil::date(2025, 12, 25)
-            .at(11, 11, 11, 0)
-            .in_tz("Asia/Manila")
-            .unwrap();
-        Command::add_task(&mut tasks, desc, new_time.clone());
+        let time = tasks.first().unwrap().created_at.clone();
+        let new_time = get_new_time();
+        Command::add_task(&mut tasks, desc.clone(), new_time.clone());
         let expected = vec![
             Task {
                 id: 1,
@@ -382,7 +383,7 @@ mod tests {
             },
             Task {
                 id: 3,
-                desc: "example".to_string(),
+                desc,
                 status: Status::ToDo,
                 created_at: new_time.clone(),
                 updated_at: new_time,
