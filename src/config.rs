@@ -402,65 +402,61 @@ mod tests {
     fn test_add_task() {
         let mut tasks = tasks_example();
         let desc = "example".to_string();
-        let time = tasks.first().unwrap().created_at.clone();
         let new_time = get_new_time();
-        Command::add_task(&mut tasks, desc.clone(), new_time.clone());
         let expected = vec![
-            Task {
-                id: 1,
-                desc: "buy milk".to_string(),
-                status: Status::InProgress,
-                created_at: time.clone(),
-                updated_at: time.clone(),
-            },
-            Task {
-                id: 2,
-                desc: "go home".to_string(),
-                status: Status::ToDo,
-                created_at: time.clone(),
-                updated_at: time,
-            },
+            tasks[0].clone(),
+            tasks[1].clone(),
             Task {
                 id: 3,
-                desc,
+                desc: desc.clone(),
                 status: Status::ToDo,
                 created_at: new_time.clone(),
-                updated_at: new_time,
+                updated_at: new_time.clone(),
             },
         ];
-        assert_eq!(tasks, expected);
+
+        Command::add_task(&mut tasks, desc, new_time);
+        assert_eq!(
+            tasks, expected,
+            "The task list should contain the original tasks plus the newly added one at the end"
+        );
     }
 
     #[test]
     fn test_update_task() {
         let mut tasks = tasks_example();
-        let time = tasks.first().unwrap().created_at.clone();
         let new_desc = "example".to_string();
         let new_time = get_new_time();
-
-        let err = Command::update_task(&mut tasks, 3, new_desc.clone(), new_time.clone());
-        assert_eq!(err, Err(CommandError::NotFound(3)));
-        assert_eq!(tasks, tasks_example());
-
-        let ok = Command::update_task(&mut tasks, 2, new_desc.clone(), new_time.clone());
         let expected = vec![
+            tasks[0].clone(),
             Task {
-                id: 1,
-                desc: "buy milk".to_string(),
-                status: Status::InProgress,
-                created_at: time.clone(),
-                updated_at: time.clone(),
-            },
-            Task {
-                id: 2,
-                desc: new_desc,
-                status: Status::ToDo,
-                created_at: time,
-                updated_at: new_time,
+                id: tasks[1].id,
+                desc: new_desc.clone(),
+                status: tasks[1].status.clone(),
+                created_at: tasks[1].created_at.clone(),
+                updated_at: new_time.clone(),
             },
         ];
-        assert!(ok.is_ok());
-        assert_eq!(tasks, expected);
+
+        let err = Command::update_task(&mut tasks, 3, new_desc.clone(), new_time.clone());
+        assert_eq!(
+            err,
+            Err(CommandError::NotFound(3)),
+            "Should return NotFound for non-existent ID"
+        );
+        assert_eq!(
+            tasks,
+            tasks_example(),
+            "Task list should remain unchanged after a failed update"
+        );
+
+        let ok = Command::update_task(&mut tasks, 2, new_desc, new_time);
+
+        assert!(ok.is_ok(), "Update should return Ok for a valid ID");
+        assert_eq!(
+            tasks, expected,
+            "Task 2 should have updated description/timestamp while Task 1 remains untouched"
+        );
     }
 
     #[test]

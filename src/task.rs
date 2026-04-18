@@ -3,7 +3,7 @@ use std::{convert, error::Error, fmt, fs, io::ErrorKind};
 
 use jiff::{Unit, Zoned};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Task {
     pub id: u32,
     pub desc: String,
@@ -146,7 +146,7 @@ impl fmt::Display for FileError {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Status {
     Done,
     ToDo,
