@@ -147,14 +147,17 @@ impl Command {
         new_desc: String,
         time: Zoned,
     ) -> Result<(), CommandError> {
-        let task = tasks
-            .iter_mut()
-            .find(|t| t.id == id)
-            .ok_or(CommandError::NotFound(id))?;
-
+        let task = Self::find_task(tasks, id)?;
         task.desc = new_desc;
         task.updated_at = time;
         Ok(())
+    }
+
+    fn find_task(tasks: &mut [Task], id: u32) -> Result<&mut Task, CommandError> {
+        tasks
+            .iter_mut()
+            .find(|t| t.id == id)
+            .ok_or(CommandError::NotFound(id))
     }
 }
 
@@ -458,5 +461,21 @@ mod tests {
         ];
         assert!(ok.is_ok());
         assert_eq!(tasks, expected);
+    }
+
+    #[test]
+    fn test_find_task() {
+        let mut tasks = tasks_example();
+
+        let found = Command::find_task(&mut tasks, 1);
+        assert!(found.is_ok(), "Task with ID 1 should be found");
+        assert_eq!(found.unwrap().id, 1);
+
+        let not_found = Command::find_task(&mut tasks, 999);
+        assert_eq!(
+            not_found.err(),
+            Some(CommandError::NotFound(999)),
+            "Should return NotFound for ID 999"
+        );
     }
 }
