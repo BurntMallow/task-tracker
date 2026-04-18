@@ -120,7 +120,12 @@ impl Command {
                 Task::save(tasks)?;
                 Ok(())
             }
-            Command::Delete(id) => todo!(),
+            Command::Delete(id) => {
+                let mut tasks = Task::load()?;
+                Self::delete_task(&mut tasks, id)?;
+                Task::save(tasks)?;
+                Ok(())
+            }
             Command::MarkInProgress(id) => todo!(),
             Command::MarkDone(id) => todo!(),
             Command::List(status) => todo!(),
@@ -150,6 +155,12 @@ impl Command {
         let task = Self::find_task(tasks, id)?;
         task.desc = new_desc;
         task.updated_at = time;
+        Ok(())
+    }
+
+    fn delete_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), CommandError> {
+        Self::find_task(tasks, id)?;
+        tasks.retain(|t| t.id != id);
         Ok(())
     }
 
@@ -456,6 +467,31 @@ mod tests {
         assert_eq!(
             tasks, expected,
             "Task 2 should have updated description/timestamp while Task 1 remains untouched"
+        );
+    }
+
+    #[test]
+    fn test_delete_task() {
+        let mut tasks = tasks_example();
+        let expected = vec![tasks[1].clone()];
+
+        let err = Command::delete_task(&mut tasks, 999);
+        assert_eq!(
+            err,
+            Err(CommandError::NotFound(999)),
+            "Should fail when deleting non-existent ID"
+        );
+        assert_eq!(
+            tasks,
+            tasks_example(),
+            "Should not change tasks when delete errs"
+        );
+
+        let ok = Command::delete_task(&mut tasks, 1);
+        assert!(ok.is_ok(), "Should successfully delete ID 1");
+        assert_eq!(
+            tasks, expected,
+            "Task 1 should have deleted from the list while Task 2 remains untouched"
         );
     }
 
