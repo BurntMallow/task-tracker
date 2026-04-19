@@ -126,8 +126,18 @@ impl Command {
                 Task::save(tasks)?;
                 Ok(())
             }
-            Command::MarkInProgress(id) => todo!(),
-            Command::MarkDone(id) => todo!(),
+            Command::MarkInProgress(id) => {
+                let mut tasks = Task::load()?;
+                Self::mark_task(&mut tasks, id, Status::InProgress, Zoned::now())?;
+                Task::save(tasks)?;
+                Ok(())
+            }
+            Command::MarkDone(id) => {
+                let mut tasks = Task::load()?;
+                Self::mark_task(&mut tasks, id, Status::Done, Zoned::now())?;
+                Task::save(tasks)?;
+                Ok(())
+            }
             Command::List(status) => todo!(),
         }
     }
@@ -161,6 +171,18 @@ impl Command {
     fn delete_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), CommandError> {
         Self::find_task(tasks, id)?;
         tasks.retain(|t| t.id != id);
+        Ok(())
+    }
+
+    fn mark_task(
+        tasks: &mut [Task],
+        id: u32,
+        status: Status,
+        time: Zoned,
+    ) -> Result<(), CommandError> {
+        let task = Self::find_task(tasks, id)?;
+        task.status = status;
+        task.updated_at = time;
         Ok(())
     }
 
@@ -494,6 +516,68 @@ mod tests {
         assert_eq!(
             tasks, expected,
             "Task 1 should have deleted from the list while Task 2 remains untouched"
+        );
+    }
+
+    #[test]
+    fn test_mark_task() {
+        let mut tasks = tasks_example();
+        let new_time = get_new_time();
+        let expected = vec![
+            Task {
+                id: tasks[0].id,
+                desc: tasks[0].desc.clone(),
+                status: Status::ToDo,
+                created_at: tasks[0].created_at.clone(),
+                updated_at: new_time.clone(),
+            },
+            Task {
+                id: tasks[1].id,
+                desc: tasks[1].desc.clone(),
+                status: Status::Done,
+                created_at: tasks[1].created_at.clone(),
+                updated_at: new_time.clone(),
+            },
+            Task {
+                id: tasks[2].id,
+                desc: tasks[2].desc.clone(),
+                status: Status::InProgress,
+                created_at: tasks[2].created_at.clone(),
+                updated_at: new_time.clone(),
+            },
+        ];
+
+        let err = Command::mark_task(&mut tasks, 999, Status::Done, new_time.clone());
+        assert_eq!(
+            err,
+            Err(CommandError::NotFound(999)),
+            "Should return NotFound for non-existent ID"
+        );
+        assert_eq!(
+            tasks,
+            tasks_example(),
+            "Task list should remain unchanged after a failed status update"
+        );
+
+        let todo_ok = Command::mark_task(&mut tasks, 1, Status::ToDo, new_time.clone());
+        let done_ok = Command::mark_task(&mut tasks, 2, Status::Done, new_time.clone());
+        let in_progress_ok = Command::mark_task(&mut tasks, 3, Status::InProgress, new_time);
+
+        assert!(
+            todo_ok.is_ok(),
+            "Mark Status ToDo should return Ok for a valid ID"
+        );
+        assert!(
+            done_ok.is_ok(),
+            "Mark Status Done should return Ok for a valid ID"
+        );
+        assert!(
+            in_progress_ok.is_ok(),
+            "Mark Status InProgress should return Ok for a valid ID"
+        );
+        assert_eq!(
+            tasks, expected,
+            "Task 1 should be ToDo, Task 2 should be Done, and Task3 should be InProgress with fresh timestamps"
         );
     }
 
