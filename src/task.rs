@@ -187,13 +187,20 @@ pub(crate) fn tasks_example() -> Vec<Task> {
     vec![
         Task {
             id: 1,
+            desc: "take a break".to_string(),
+            status: Status::Done,
+            created_at: time.clone(),
+            updated_at: time.clone(),
+        },
+        Task {
+            id: 2,
             desc: "buy milk".to_string(),
             status: Status::InProgress,
             created_at: time.clone(),
             updated_at: time.clone(),
         },
         Task {
-            id: 2,
+            id: 3,
             desc: "go home".to_string(),
             status: Status::ToDo,
             created_at: time.clone(),
@@ -211,13 +218,20 @@ mod test {
     "tasks": [
         {
             "id": 1,
+            "desc": "take a break",
+            "status": "done",
+            "created_at": "2024-02-29T12:51:00+08:00[Asia/Manila]",
+            "updated_at": "2024-02-29T12:51:00+08:00[Asia/Manila]"
+        },
+        {
+            "id": 2,
             "desc": "buy milk",
             "status": "in-progress",
             "created_at": "2024-02-29T12:51:00+08:00[Asia/Manila]",
             "updated_at": "2024-02-29T12:51:00+08:00[Asia/Manila]"
         },
         {
-            "id": 2,
+            "id": 3,
             "desc": "go home",
             "status": "todo",
             "created_at": "2024-02-29T12:51:00+08:00[Asia/Manila]",

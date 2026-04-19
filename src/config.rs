@@ -417,8 +417,9 @@ mod tests {
         let expected = vec![
             tasks[0].clone(),
             tasks[1].clone(),
+            tasks[2].clone(),
             Task {
-                id: 3,
+                id: 4,
                 desc: desc.clone(),
                 status: Status::ToDo,
                 created_at: new_time.clone(),
@@ -447,12 +448,13 @@ mod tests {
                 created_at: tasks[1].created_at.clone(),
                 updated_at: new_time.clone(),
             },
+            tasks[2].clone(),
         ];
 
-        let err = Command::update_task(&mut tasks, 3, new_desc.clone(), new_time.clone());
+        let err = Command::update_task(&mut tasks, 999, new_desc.clone(), new_time.clone());
         assert_eq!(
             err,
-            Err(CommandError::NotFound(3)),
+            Err(CommandError::NotFound(999)),
             "Should return NotFound for non-existent ID"
         );
         assert_eq!(
@@ -473,7 +475,7 @@ mod tests {
     #[test]
     fn test_delete_task() {
         let mut tasks = tasks_example();
-        let expected = vec![tasks[1].clone()];
+        let expected = vec![tasks[1].clone(), tasks[2].clone()];
 
         let err = Command::delete_task(&mut tasks, 999);
         assert_eq!(
