@@ -24,7 +24,7 @@ impl Task {
 }}"##,
             self.id,
             self.desc,
-            self.status,
+            self.status.as_str(),
             self.created_at.round(Unit::Second).unwrap(),
             self.updated_at.round(Unit::Second).unwrap()
         )
@@ -156,9 +156,9 @@ pub enum Status {
 impl fmt::Display for Status {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Status::Done => write!(f, "done"),
-            Status::ToDo => write!(f, "todo"),
-            Status::InProgress => write!(f, "in-progress"),
+            Status::Done => write!(f, "Done"),
+            Status::ToDo => write!(f, "Todo"),
+            Status::InProgress => write!(f, "In-Progress"),
         }
     }
 }
@@ -172,6 +172,16 @@ impl convert::TryFrom<&str> for Status {
             "todo" => Ok(Status::ToDo),
             "in-progress" => Ok(Status::InProgress),
             _ => Err(CliError::InvalidStatus(value.to_string())),
+        }
+    }
+}
+
+impl Status {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::ToDo => "todo",
+            Self::InProgress => "in-progress",
+            Self::Done => "done",
         }
     }
 }

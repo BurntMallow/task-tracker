@@ -138,7 +138,11 @@ impl Command {
                 Task::save(tasks)?;
                 Ok(())
             }
-            Command::List(status) => todo!(),
+            Command::List(status) => {
+                let tasks = Task::load()?;
+                Self::list_tasks(tasks, status);
+                Ok(())
+            }
         }
     }
 
@@ -184,6 +188,41 @@ impl Command {
         task.status = status;
         task.updated_at = time;
         Ok(())
+    }
+
+    fn list_tasks(mut tasks: Vec<Task>, status: Option<Status>) -> Vec<Task> {
+        tasks.retain(|t| status.as_ref().is_none_or(|s| t.status == *s));
+
+        if tasks.is_empty() {
+            if let Some(s) = status {
+                println!("No Tasks with Status {} found", s);
+            } else {
+                println!("No Tasks found");
+            }
+        } else if let Some(s) = status {
+            println!("--- Tasks with Status: {} ---", s);
+            for task in tasks.iter().filter(|t| t.status == s) {
+                println!(
+                    "[{}] {}: {}",
+                    task.created_at.strftime("%Y-%m-%d %H:%M"),
+                    task.id,
+                    task.desc
+                );
+            }
+        } else {
+            println!("--- All Tasks ---");
+            for task in &tasks {
+                println!(
+                    "[{}] {}: {} ({})",
+                    task.created_at.strftime("%Y-%m-%d %H:%M"),
+                    task.id,
+                    task.desc,
+                    task.status
+                );
+            }
+        }
+
+        tasks
     }
 
     fn find_task(tasks: &mut [Task], id: u32) -> Result<&mut Task, CommandError> {
@@ -579,6 +618,69 @@ mod tests {
             tasks, expected,
             "Task 1 should be ToDo, Task 2 should be Done, and Task3 should be InProgress with fresh timestamps"
         );
+    }
+
+    #[test]
+    fn test_list_task() {
+        let tasks = tasks_example();
+
+        let empty_list = Command::list_tasks(vec![], None);
+        assert!(
+            empty_list.is_empty(),
+            "Shoudl return empty for an empty input"
+        );
+
+        let all_list = Command::list_tasks(tasks.clone(), None);
+        assert_eq!(
+            all_list,
+            tasks.clone(),
+            "Should return all tasks when given no status"
+        );
+
+        let done_list = Command::list_tasks(tasks.clone(), Some(Status::Done));
+        let expected_done_list = vec![Task {
+            id: tasks[0].id,
+            desc: tasks[0].desc.clone(),
+            status: tasks[0].status.clone(),
+            created_at: tasks[0].created_at.clone(),
+            updated_at: tasks[0].updated_at.clone(),
+        }];
+        assert_eq!(
+            done_list, expected_done_list,
+            "Should only return tasks with Done status"
+        );
+
+        let in_progress_list = Command::list_tasks(tasks.clone(), Some(Status::InProgress));
+        let expected_in_progress_list = vec![Task {
+            id: tasks[1].id,
+            desc: tasks[1].desc.clone(),
+            status: tasks[1].status.clone(),
+            created_at: tasks[1].created_at.clone(),
+            updated_at: tasks[1].updated_at.clone(),
+        }];
+        assert_eq!(
+            in_progress_list, expected_in_progress_list,
+            "Should only return tasks with InProgress status"
+        );
+
+        let todo_list = Command::list_tasks(tasks.clone(), Some(Status::ToDo));
+        let expected_todo_list = vec![Task {
+            id: tasks[2].id,
+            desc: tasks[2].desc.clone(),
+            status: tasks[2].status.clone(),
+            created_at: tasks[2].created_at.clone(),
+            updated_at: tasks[2].updated_at.clone(),
+        }];
+        assert_eq!(
+            todo_list, expected_todo_list,
+            "Should only return tasks with ToDo status"
+        );
+
+        let not_found_list = Command::list_tasks(todo_list, Some(Status::Done));
+        assert!(
+            not_found_list.is_empty(),
+            "Should return empty when no tasks with given status is found"
+        )
     }
 
     #[test]
