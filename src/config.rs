@@ -110,32 +110,37 @@ impl Command {
             }
             Command::Add(desc) => {
                 let mut tasks = Task::load()?;
-                Self::add_task(&mut tasks, desc, Zoned::now());
+                let id = Self::add_task(&mut tasks, desc, Zoned::now());
                 Task::save(tasks)?;
+                println!("Task added successfully (ID: {})", id);
                 Ok(())
             }
             Command::Update { id, desc } => {
                 let mut tasks = Task::load()?;
                 Self::update_task(&mut tasks, id, desc, Zoned::now())?;
                 Task::save(tasks)?;
+                println!("Task {} updated successfully.", id);
                 Ok(())
             }
             Command::Delete(id) => {
                 let mut tasks = Task::load()?;
                 Self::delete_task(&mut tasks, id)?;
                 Task::save(tasks)?;
+                println!("Task {} deleted successfully.", id);
                 Ok(())
             }
             Command::MarkInProgress(id) => {
                 let mut tasks = Task::load()?;
                 Self::mark_task(&mut tasks, id, Status::InProgress, Zoned::now())?;
                 Task::save(tasks)?;
+                println!("Task {} marked as {}.", id, Status::InProgress);
                 Ok(())
             }
             Command::MarkDone(id) => {
                 let mut tasks = Task::load()?;
                 Self::mark_task(&mut tasks, id, Status::Done, Zoned::now())?;
                 Task::save(tasks)?;
+                println!("Task {} marked as {}.", id, Status::Done);
                 Ok(())
             }
             Command::List(status) => {
@@ -146,7 +151,7 @@ impl Command {
         }
     }
 
-    fn add_task(tasks: &mut Vec<Task>, desc: String, now: Zoned) {
+    fn add_task(tasks: &mut Vec<Task>, desc: String, now: Zoned) -> u32 {
         let id = match tasks.last() {
             Some(task) => task.id + 1,
             None => 1,
@@ -158,6 +163,8 @@ impl Command {
             created_at: now.clone(),
             updated_at: now,
         });
+
+        id
     }
 
     fn update_task(
