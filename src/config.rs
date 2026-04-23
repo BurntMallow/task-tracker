@@ -102,50 +102,39 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn execute(self) -> Result<(), Box<dyn Error>> {
+    pub fn execute(self, tasks: &mut Vec<Task>) -> Result<(), Box<dyn Error>> {
         match self {
             Command::Help => {
                 println!("Manages your tasks\n{}", show_all_usage());
                 Ok(())
             }
             Command::Add(desc) => {
-                let mut tasks = Task::load()?;
-                let id = Self::add_task(&mut tasks, desc, Zoned::now());
-                Task::save(tasks)?;
+                let id = Self::add_task(tasks, desc, Zoned::now());
                 println!("Task added successfully (ID: {})", id);
                 Ok(())
             }
             Command::Update { id, desc } => {
-                let mut tasks = Task::load()?;
-                Self::update_task(&mut tasks, id, desc, Zoned::now())?;
-                Task::save(tasks)?;
+                Self::update_task(tasks, id, desc, Zoned::now())?;
                 println!("Task {} updated successfully.", id);
                 Ok(())
             }
             Command::Delete(id) => {
-                let mut tasks = Task::load()?;
-                Self::delete_task(&mut tasks, id)?;
-                Task::save(tasks)?;
+                Self::delete_task(tasks, id)?;
                 println!("Task {} deleted successfully.", id);
                 Ok(())
             }
             Command::MarkInProgress(id) => {
-                let mut tasks = Task::load()?;
-                Self::mark_task(&mut tasks, id, Status::InProgress, Zoned::now())?;
-                Task::save(tasks)?;
+                Self::mark_task(tasks, id, Status::InProgress, Zoned::now())?;
                 println!("Task {} marked as {}.", id, Status::InProgress);
                 Ok(())
             }
             Command::MarkDone(id) => {
-                let mut tasks = Task::load()?;
-                Self::mark_task(&mut tasks, id, Status::Done, Zoned::now())?;
-                Task::save(tasks)?;
+                Self::mark_task(tasks, id, Status::Done, Zoned::now())?;
                 println!("Task {} marked as {}.", id, Status::Done);
                 Ok(())
             }
             Command::List(status) => {
-                let tasks = Task::load()?;
-                Self::list_tasks(tasks, status);
+                Self::list_tasks(tasks.to_vec(), status);
                 Ok(())
             }
         }
@@ -240,21 +229,6 @@ impl Command {
     }
 }
 
-#[derive(Debug, PartialEq)]
-enum CommandError {
-    NotFound(u32),
-}
-
-impl Error for CommandError {}
-
-impl fmt::Display for CommandError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            CommandError::NotFound(id) => write!(f, "Task with ID {id} not found"),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum CommandKind {
     Help,
@@ -264,6 +238,22 @@ pub enum CommandKind {
     MarkInProgress,
     MarkDone,
     List,
+}
+
+impl CommandKind {
+    fn usage(&self) -> &str {
+        match self {
+            CommandKind::Help => "",
+            CommandKind::Add => "add <DESC>....          Create a new task",
+            CommandKind::Update => "update <ID> <DESC>....  Change task description",
+            CommandKind::Delete => "delete <ID>             Delete task",
+            CommandKind::MarkInProgress => {
+                "mark-in-progress <ID>   Mark task status as in-progress"
+            }
+            CommandKind::MarkDone => "mark-done <ID>          Mark task status as done",
+            CommandKind::List => "list [STATUS]           List tasks (todo | done | in-progress)",
+        }
+    }
 }
 
 impl convert::TryFrom<&str> for CommandKind {
@@ -283,20 +273,16 @@ impl convert::TryFrom<&str> for CommandKind {
     }
 }
 
-impl CommandKind {
-    fn usage(&self) -> &str {
-        match self {
-            CommandKind::Help => "",
-            CommandKind::Add => "add <DESC>....          Create a new task",
-            CommandKind::Update => "update <ID> <DESC>....  Change task description",
-            CommandKind::Delete => "delete <ID>             Delete task",
-            CommandKind::MarkInProgress => {
-                "mark-in-progress <ID>   Mark task status as in-progress"
-            }
-            CommandKind::MarkDone => "mark-done <ID>          Mark task status as done",
-            CommandKind::List => "list [STATUS]           List tasks (todo | done | in-progress)",
-        }
-    }
+fn show_all_usage() -> String {
+    format!(
+        "\nUsage: todo [OPTIONS]\n\nOptions:\n{}\n{}\n{}\n{}\n{}\n{}",
+        CommandKind::Add.usage(),
+        CommandKind::Update.usage(),
+        CommandKind::Delete.usage(),
+        CommandKind::MarkInProgress.usage(),
+        CommandKind::MarkDone.usage(),
+        CommandKind::List.usage(),
+    )
 }
 
 #[derive(Debug, PartialEq)]
@@ -329,17 +315,22 @@ impl fmt::Display for CliError {
     }
 }
 
-fn show_all_usage() -> String {
-    format!(
-        "\nUsage: todo [OPTIONS]\n\nOptions:\n{}\n{}\n{}\n{}\n{}\n{}",
-        CommandKind::Add.usage(),
-        CommandKind::Update.usage(),
-        CommandKind::Delete.usage(),
-        CommandKind::MarkInProgress.usage(),
-        CommandKind::MarkDone.usage(),
-        CommandKind::List.usage(),
-    )
+impl Error for CliError {}
+
+#[derive(Debug, PartialEq)]
+enum CommandError {
+    NotFound(u32),
 }
+
+impl fmt::Display for CommandError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CommandError::NotFound(id) => write!(f, "Error: Task with ID {id} not found"),
+        }
+    }
+}
+
+impl Error for CommandError {}
 
 #[cfg(test)]
 mod tests {

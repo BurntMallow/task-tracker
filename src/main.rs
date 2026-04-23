@@ -1,22 +1,23 @@
-use std::{env, process};
+use std::{env, error::Error, process};
 
 mod config;
+mod persistence;
 mod task;
 use config::Config;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    let config = match Config::build(args) {
-        Ok(config) => config,
-        Err(err) => {
-            eprintln!("{err}");
-            process::exit(1);
-        }
-    };
-
-    if let Err(e) = config.command.execute() {
-        eprintln!("Application error: {e}");
+    if let Err(e) = run() {
+        eprintln!("{e}");
         process::exit(1);
     }
+}
+
+fn run() -> Result<(), Box<dyn Error>> {
+    let args: Vec<String> = env::args().collect();
+    let config = Config::build(args)?;
+
+    let mut tasks = persistence::load()?;
+    config.command.execute(&mut tasks)?;
+    persistence::save(tasks)?;
+    Ok(())
 }
