@@ -1,9 +1,10 @@
-use std::{error::Error, fmt, fs, io::ErrorKind};
+use std::{env::var, error::Error, fmt, fs, io::ErrorKind};
 
 use crate::task::{Status, Task};
 
 pub fn load() -> Result<Vec<Task>, Box<dyn Error>> {
-    let json: String = match fs::read_to_string("tasks.json") {
+    let file_path = var("TASKS_FILE_PATH").unwrap_or_else(|_| "tasks.json".to_string());
+    let json: String = match fs::read_to_string(file_path) {
         Ok(content) => content,
         Err(ref e) if e.kind() == ErrorKind::NotFound => String::new(),
         Err(e) => return Err(Box::new(e)),
@@ -13,10 +14,10 @@ pub fn load() -> Result<Vec<Task>, Box<dyn Error>> {
 }
 
 pub fn save(tasks: Vec<Task>) -> Result<(), Box<dyn Error>> {
-    let path = "tasks.json";
-    let temp_path = "tasks.json.tmp";
+    let path = var("TASKS_FILE_PATH").unwrap_or_else(|_| "tasks.json".to_string());
+    let temp_path = var("TASKS_FILE_PATH_TEMP").unwrap_or_else(|_| "tasks.json.tmp".to_string());
     let contents = tasks_to_json(tasks);
-    fs::write(temp_path, contents.as_bytes())?;
+    fs::write(temp_path.clone(), contents.as_bytes())?;
     fs::rename(temp_path, path)?;
     Ok(())
 }
