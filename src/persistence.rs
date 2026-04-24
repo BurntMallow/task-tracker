@@ -3,20 +3,27 @@ use std::{env::var, error::Error, fmt, fs, io::ErrorKind};
 use crate::task::{Status, Task};
 
 pub fn load() -> Result<Vec<Task>, Box<dyn Error>> {
+    // Environment variable allows test sandbox to override the default data file
     let file_path = var("TASKS_FILE_PATH").unwrap_or_else(|_| "tasks.json".to_string());
+
     let json: String = match fs::read_to_string(file_path) {
         Ok(content) => content,
         Err(ref e) if e.kind() == ErrorKind::NotFound => String::new(),
         Err(e) => return Err(Box::new(e)),
     };
+
     let tasks = read_json(json)?;
     Ok(tasks)
 }
 
 pub fn save(tasks: Vec<Task>) -> Result<(), Box<dyn Error>> {
+    // Dynamic paths allow integration tests to redirect writes to a temporary sandbox
     let path = var("TASKS_FILE_PATH").unwrap_or_else(|_| "tasks.json".to_string());
     let temp_path = var("TASKS_FILE_PATH_TEMP").unwrap_or_else(|_| "tasks.json.tmp".to_string());
+
     let contents = tasks_to_json(tasks);
+
+    // Atomic write: save to a temporary file then rename to prevent data corruption during crashes
     fs::write(temp_path.clone(), contents.as_bytes())?;
     fs::rename(temp_path, path)?;
     Ok(())
@@ -28,6 +35,8 @@ fn read_json(json: String) -> Result<Vec<Task>, FileError> {
     if json.is_empty() {
         return Ok(tasks);
     }
+
+    // Manual parsing: strip the outer JSON object "envelope" to isolate the task array
     let less_json = json
         .strip_prefix(
             r##"{
@@ -45,6 +54,7 @@ fn read_json(json: String) -> Result<Vec<Task>, FileError> {
         return Ok(tasks);
     }
 
+    // Key patterns used to slice values out of the raw JSON string
     let key_strs = [
         r##""id": "##,
         r##",
@@ -58,6 +68,8 @@ fn read_json(json: String) -> Result<Vec<Task>, FileError> {
         r##"""##,
     ];
 
+    // Split into individual task strings based on the expected JSON formatting
+    // Uses the exact formatting produced by tasks_to_json to identify boundaries.
     for obj in less_json
         .trim_matches(|c| c == '[' || c == ']')
         .split("},\n        {")
@@ -65,6 +77,7 @@ fn read_json(json: String) -> Result<Vec<Task>, FileError> {
         let task = obj.trim_matches(|c| c == '{' || c == '}');
 
         let mut values = Vec::new();
+        // Sliding window extracts values between known key delimiters
         for key in key_strs.windows(2) {
             let value = find_json_value(task, key[0], key[1])?;
             values.push(value.to_string());
@@ -82,9 +95,9 @@ fn read_json(json: String) -> Result<Vec<Task>, FileError> {
     Ok(tasks)
 }
 
-// Returns value in between before key and after key in task json
 fn find_json_value(task: &str, before: &str, after: &str) -> Result<String, FileError> {
     let start: usize = task.find(before).ok_or(FileError::InvalidTask)? + before.len();
+    // Use rfind to handle cases where the 'after' delimiter might appear inside the value
     let end = task.rfind(after).unwrap();
     Ok(task[start..end].to_string())
 }
@@ -93,6 +106,7 @@ fn tasks_to_json(tasks: Vec<Task>) -> String {
     let json_tasks: Vec<String> = tasks
         .iter()
         .map(|t| {
+            // Apply indentation to nested task strings to maintain pretty-printed format
             t.to_json()
                 .lines()
                 .map(|line| format!("        {}", line))

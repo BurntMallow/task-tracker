@@ -12,6 +12,7 @@ pub struct Config {
 
 impl Config {
     pub fn build(args: Vec<String>) -> Result<Config, CliError> {
+        // Skip the executable path and get the primary command
         let mut iter = args.into_iter().skip(1);
         let cmd = iter.next().unwrap_or_default();
         let kind = CommandKind::try_from(cmd.as_str())?;
@@ -21,12 +22,14 @@ impl Config {
                 command: Command::Help,
             }),
             CommandKind::Add => {
+                // For 'add', consume all remaining arguments as the description
                 let desc = Self::next_desc(&mut iter, kind)?;
                 Ok(Config {
                     command: Command::Add(desc),
                 })
             }
             CommandKind::Update => {
+                // Order matters: ID must come before the multi-word description
                 let id = Self::next_id(&mut iter, kind.clone())?;
                 let desc = Self::next_desc(&mut iter, kind)?;
                 Ok(Config {
@@ -65,6 +68,7 @@ impl Config {
         }
     }
 
+    // Re-combine remaining arguments into a single string to support unquoted descriptions
     fn next_desc(
         iter: &mut impl Iterator<Item = String>,
         kind: CommandKind,
@@ -169,7 +173,7 @@ impl Command {
     }
 
     fn delete_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), CommandError> {
-        Self::find_task(tasks, id)?;
+        Self::find_task(tasks, id)?; // Needed for error report, ui feedback
         tasks.retain(|t| t.id != id);
         Ok(())
     }

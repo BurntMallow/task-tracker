@@ -21,6 +21,7 @@ pub struct Task {
 
 impl Task {
     pub fn to_json(&self) -> String {
+        // Raw string literal used to maintain exact indentation for the manual JSON parser
         format!(
             r##"{{
     "id": {},
@@ -32,6 +33,8 @@ impl Task {
             self.id,
             self.desc,
             self.status.as_str(),
+            // Rounding to seconds removes nanosecond "noise" while keeping
+            // the offset/zone required for Zoned::parse().unwrap() to work later.
             self.created_at.round(Unit::Second).unwrap(),
             self.updated_at.round(Unit::Second).unwrap()
         )
@@ -39,6 +42,7 @@ impl Task {
 }
 
 impl Status {
+    // Machine-friendly string representation for JSON keys and CLI arguments
     fn as_str(&self) -> &'static str {
         match self {
             Self::ToDo => "todo",
@@ -62,6 +66,7 @@ impl convert::TryFrom<&str> for Status {
 }
 
 impl fmt::Display for Status {
+    // User-friendly string representation for terminal UI output
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Status::Done => write!(f, "Done"),
