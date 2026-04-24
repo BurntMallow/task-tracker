@@ -33,7 +33,16 @@ fn read_json(json: String) -> Result<Vec<Task>, FileError> {
     "tasks": [
 "##,
         )
+        .ok_or(FileError::MissingTasks)?
+        .strip_suffix(
+            r##"]
+}"##,
+        )
         .ok_or(FileError::MissingTasks)?;
+
+    if less_json.trim().is_empty() {
+        return Ok(tasks);
+    }
 
     let key_strs = [
         r##""id": "##,
