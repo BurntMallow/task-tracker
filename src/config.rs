@@ -279,7 +279,7 @@ impl convert::TryFrom<&str> for CommandKind {
 
 fn show_all_usage() -> String {
     format!(
-        "\nUsage: todo [OPTIONS]\n\nOptions:\n{}\n{}\n{}\n{}\n{}\n{}",
+        "\nUsage: task-tracker [OPTIONS]\n\nOptions:\n{}\n{}\n{}\n{}\n{}\n{}",
         CommandKind::Add.usage(),
         CommandKind::Update.usage(),
         CommandKind::Delete.usage(),

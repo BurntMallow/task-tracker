@@ -17,7 +17,7 @@ fn test_cli_flow() -> Result<(), Box<dyn Error>> {
     const LIST_USAGE: &str = "list [STATUS]           List tasks (todo | done | in-progress)";
 
     let all_usage = format!(
-        "\nUsage: todo [OPTIONS]\n\nOptions:\n{}\n{}\n{}\n{}\n{}\n{}",
+        "\nUsage: task-tracker [OPTIONS]\n\nOptions:\n{}\n{}\n{}\n{}\n{}\n{}",
         ADD_USAGE, UPDATE_USAGE, DELETE_USAGE, MARK_IN_PROG_USAGE, MARK_DONE_USAGE, LIST_USAGE
     );
 
@@ -138,7 +138,7 @@ fn test_cli_flow() -> Result<(), Box<dyn Error>> {
         r##"}"##,
     ];
 
-    let bin_path = env!("CARGO_BIN_EXE_task_tracker");
+    let bin_path = env!("CARGO_BIN_EXE_task-tracker");
 
     let mut file_path = std::env::current_dir()?;
     file_path.push("test_tasks.json");
