@@ -32,6 +32,8 @@ jobs:
     needs: build_and_test
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -42,9 +44,21 @@ jobs:
       - name: Build for Release
         run: cargo build --release --locked
 
+      - name: Prepare Binaries
+        shell: bash
+        run: |
+          mkdir -p assets
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp target/release/task-tracker.exe assets/task-tracker-windows.exe
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            cp target/release/task-tracker assets/task-tracker-macos
+          else
+            cp target/release/task-tracker assets/task-tracker-linux
+          fi
+
       - name: Release to GitHub
         uses: softprops/action-gh-release@v2
         with:
-          files: target/release/task-tracker* 
+          files: assets/task-tracker-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
