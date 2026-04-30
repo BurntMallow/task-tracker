@@ -5,9 +5,11 @@ A minimalist task manager built in Rust.
 ## Installation
 
 ### Download Release
-1. Go to the [Releases](https://github.com/BurntMallow/task-tracker/releases/latest) page of this repository.
-2. Download the binary for your operating system.
-3. (Optional) Move the binary to a directory in your system's PATH.
+1. Go to the [Latest Releases](https://github.com/BurntMallow/task-tracker/releases/latest) and download the archive (.tar.gz or .zip) for your operating system.
+2. Unpack the archive to get the binary-name executable.
+3. (For macOS/Linux) Open your terminal in the folder where you extracted the file and ensure it has permission to run by typing:
+chmod +x task-tracker
+4. (Optional) Move the binary to a directory in your system's PATH.
 
 ### Build from Source
 ```bash

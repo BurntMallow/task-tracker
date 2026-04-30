@@ -44,21 +44,27 @@ jobs:
       - name: Build for Release
         run: cargo build --release --locked
 
-      - name: Prepare Binaries
+      - name: Package Assets
         shell: bash
         run: |
-          mkdir -p assets
+          mkdir -p dist
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp target/release/task-tracker.exe assets/task-tracker-windows.exe
+            # Rename for the archive, then zip it
+            cp target/release/task-tracker.exe dist/task-tracker.exe
+            7z a task-tracker-windows.zip ./dist/task-tracker.exe
           elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-            cp target/release/task-tracker assets/task-tracker-macos
+            cp target/release/task-tracker dist/task-tracker
+            tar -czvf task-tracker-macos.tar.gz -C dist task-tracker
           else
-            cp target/release/task-tracker assets/task-tracker-linux
+            cp target/release/task-tracker dist/task-tracker
+            tar -czvf task-tracker-linux.tar.gz -C dist task-tracker
           fi
 
       - name: Release to GitHub
         uses: softprops/action-gh-release@v2
         with:
-          files: assets/task-tracker-*
+          files: |
+            task-tracker-*.zip
+            task-tracker-*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
